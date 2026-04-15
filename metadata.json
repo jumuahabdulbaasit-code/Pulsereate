@@ -1,0 +1,7 @@
+{
+  "name": "GoldenCheck",
+  "description": "A simple daily check-in app for elderly safety. Users tap a button once a day to notify family they are okay.",
+  "requestFramePermissions": [
+    "notifications"
+  ]
+}

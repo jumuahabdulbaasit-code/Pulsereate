@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "checkInDeadline": { "type": "string", "description": "Time of day for check-in e.g. 10:00" }
+      },
+      "required": ["uid"]
+    },
+    "CheckIn": {
+      "title": "CheckIn",
+      "description": "A daily check-in record",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["ok", "missed"] },
+        "note": { "type": "string", "description": "Optional short note about how the user is feeling" }
+      },
+      "required": ["uid", "timestamp", "status"]
+    },
+    "EmergencyContact": {
+      "title": "EmergencyContact",
+      "description": "Family member to notify",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["uid", "name", "email"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/users/{uid}/checkins/{checkInId}": {
+      "schema": "CheckIn",
+      "description": "Daily check-in records"
+    },
+    "/users/{uid}/contacts/{contactId}": {
+      "schema": "EmergencyContact",
+      "description": "Family contacts"
+    }
+  }
+}
