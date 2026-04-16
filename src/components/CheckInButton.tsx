@@ -14,9 +14,10 @@ interface CheckInButtonProps {
   lastCheckIn: Date | null;
   isCheckingIn: boolean;
   contacts: Contact[];
+  userName?: string;
 }
 
-export default function CheckInButton({ onCheckIn, lastCheckIn, isCheckingIn, contacts }: CheckInButtonProps) {
+export default function CheckInButton({ onCheckIn, lastCheckIn, isCheckingIn, contacts, userName }: CheckInButtonProps) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [note, setNote] = useState('');
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -91,7 +92,9 @@ export default function CheckInButton({ onCheckIn, lastCheckIn, isCheckingIn, co
       </AnimatePresence>
 
       <div className="text-center space-y-2">
-        <h2 className="text-3xl font-serif italic text-calm-900">Daily Check-In</h2>
+        <h2 className="text-3xl font-serif italic text-calm-900">
+          {userName ? `Hi ${userName}` : 'Daily Check-In'}
+        </h2>
         <p className="text-sm text-calm-500 max-w-[240px] mx-auto">
           {isToday 
             ? "You're all set for today! Your family has been notified." 

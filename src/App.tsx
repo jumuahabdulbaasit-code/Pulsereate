@@ -4,15 +4,18 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Heart, History, Info, LayoutDashboard, ShieldCheck, Users, Bell, Settings, LogOut, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Heart, History, Info, LayoutDashboard, ShieldCheck, Users, Bell, Settings, LogOut, CheckCircle2, AlertCircle, ChevronRight, HelpCircle } from 'lucide-react';
 import CheckInButton from './components/CheckInButton';
 import ContactManager from './components/ContactManager';
 import CheckInHistory from './components/CheckInHistory';
 import AuthStatus from './components/AuthStatus';
 import Onboarding from './components/Onboarding';
+import HowItWorks from './components/HowItWorks';
+import UserProfileEditor from './components/UserProfileEditor';
+import FAQ from './components/FAQ';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
-import { auth, db, handleFirestoreError, OperationType } from './firebase';
+import { auth, db, handleFirestoreError, OperationType, signInAnonymously } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { 
   collection, 
@@ -44,12 +47,22 @@ interface Contact {
 }
 
 export default function App() {
-  const [user] = useAuthState(auth);
+  const [user, loading] = useAuthState(auth);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [profile, setProfile] = useState<{ displayName?: string, photoURL?: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'contacts' | 'history' | 'settings'>('home');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
+
+  // Auto sign-in anonymously if no user is present
+  useEffect(() => {
+    if (!loading && !user) {
+      signInAnonymously(auth).catch(err => console.error('Auto-login failed', err));
+    }
+  }, [user, loading]);
 
   // Check if onboarding should be shown
   useEffect(() => {
@@ -103,6 +116,22 @@ export default function App() {
       })) as Contact[];
       setContacts(data);
     }, (err) => handleFirestoreError(err, OperationType.LIST, `users/${user.uid}/contacts`));
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Sync Profile
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
+      if (snapshot.exists()) {
+        setProfile(snapshot.data());
+      }
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}`));
 
     return () => unsubscribe();
   }, [user]);
@@ -161,6 +190,9 @@ export default function App() {
         {showOnboarding && <Onboarding onComplete={completeOnboarding} />}
       </AnimatePresence>
 
+      <HowItWorks isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
+      <FAQ isOpen={showFAQ} onClose={() => setShowFAQ(false)} />
+
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-calm-100">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -170,21 +202,39 @@ export default function App() {
             </div>
             <h1 className="text-xl font-serif italic font-bold text-calm-900">GoldenCheck</h1>
           </div>
-          <AuthStatus />
+          <div className="flex items-center gap-4">
+            {profile?.displayName && (
+              <div className="text-right hidden sm:block">
+                <p className="text-[10px] font-bold text-calm-400 uppercase tracking-widest leading-none">Welcome back</p>
+                <p className="text-xs font-bold text-calm-900">{profile.displayName}</p>
+              </div>
+            )}
+            {profile?.photoURL && (
+              <img 
+                src={profile.photoURL} 
+                alt="Profile" 
+                className="w-10 h-10 rounded-xl border-2 border-white shadow-sm"
+                referrerPolicy="no-referrer"
+              />
+            )}
+            <button
+              onClick={() => setShowHowItWorks(true)}
+              className="p-2 text-calm-400 hover:text-calm-600 transition-colors"
+              title="How it works"
+            >
+              <Info className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-8 space-y-8">
-        {!user ? (
+        {!user && loading ? (
           <div className="text-center py-20 space-y-6">
             <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-calm-100 flex items-center justify-center mx-auto">
               <Heart className="w-10 h-10 text-heart-500 fill-current animate-pulse" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-3xl font-serif italic text-calm-900">Welcome to GoldenCheck</h2>
-              <p className="text-calm-500 max-w-xs mx-auto">A simple way to let your family know you're safe every day.</p>
-            </div>
-            <p className="text-xs text-calm-400">Please sign in to start your daily check-ins.</p>
+            <p className="text-xs text-calm-400">Opening GoldenCheck...</p>
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -201,6 +251,7 @@ export default function App() {
                   lastCheckIn={lastCheckIn}
                   isCheckingIn={isCheckingIn}
                   contacts={contacts}
+                  userName={profile?.displayName}
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -260,20 +311,78 @@ export default function App() {
 
             {activeTab === 'settings' && (
               <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+                <UserProfileEditor />
+
                 <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-calm-100 space-y-6">
                   <h2 className="text-2xl font-serif italic text-calm-900">Settings</h2>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-calm-50 rounded-2xl">
-                      <div>
-                        <p className="font-semibold text-sm text-calm-900">Notifications</p>
-                        <p className="text-[10px] text-calm-400">Receive reminders to check in</p>
+                  
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-calm-400 uppercase tracking-widest">App Notifications</p>
+                      <div className="flex items-center justify-between p-4 bg-calm-50 rounded-2xl">
+                        <div>
+                          <p className="font-semibold text-sm text-calm-900">Reminders</p>
+                          <p className="text-[10px] text-calm-400">Receive reminders to check in</p>
+                        </div>
+                        <button 
+                          onClick={() => Notification.requestPermission()}
+                          className="px-4 py-2 bg-calm-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl"
+                        >
+                          Enable
+                        </button>
                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-calm-400 uppercase tracking-widest">Help & Info</p>
                       <button 
-                        onClick={() => Notification.requestPermission()}
-                        className="px-4 py-2 bg-calm-900 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl"
+                        onClick={() => setShowHowItWorks(true)}
+                        className="w-full flex items-center justify-between p-4 bg-calm-50 rounded-2xl hover:bg-calm-100 transition-all"
                       >
-                        Enable
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                            <Info className="w-4 h-4 text-calm-600" />
+                          </div>
+                          <p className="font-semibold text-sm text-calm-900">How GoldenCheck Works</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-calm-300" />
                       </button>
+
+                      <button 
+                        onClick={() => setShowFAQ(true)}
+                        className="w-full flex items-center justify-between p-4 bg-calm-50 rounded-2xl hover:bg-calm-100 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                            <HelpCircle className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <p className="font-semibold text-sm text-calm-900">Common Questions (FAQ)</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-calm-300" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-calm-400 uppercase tracking-widest">Install on Phone</p>
+                      <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 space-y-4">
+                        <p className="text-xs text-blue-700 leading-relaxed">
+                          You can use GoldenCheck just like a real app on your phone!
+                        </p>
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0">1</div>
+                            <p className="text-[10px] text-blue-600">Tap the <strong>Share</strong> button in your browser (at the top or bottom).</p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0">2</div>
+                            <p className="text-[10px] text-blue-600">Select <strong>"Add to Home Screen"</strong>.</p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0">3</div>
+                            <p className="text-[10px] text-blue-600">The app icon will now appear on your phone's home screen!</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

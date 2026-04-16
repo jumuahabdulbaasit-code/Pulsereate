@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Users, Bell, MessageCircle, ChevronRight, X } from 'lucide-react';
+import { Heart, Users, Bell, MessageCircle, ChevronRight, X, User } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -30,6 +30,12 @@ const steps = [
     description: "After checking in, you can send a quick WhatsApp message to your family with just one tap.",
     icon: <MessageCircle className="w-12 h-12 text-green-600" />,
     color: "bg-green-50"
+  },
+  {
+    title: "Personalize",
+    description: "Go to Settings to set your name and choose a profile picture so your family knows it's you.",
+    icon: <User className="w-12 h-12 text-purple-500" />,
+    color: "bg-purple-50"
   }
 ];
 

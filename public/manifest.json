@@ -1,0 +1,21 @@
+{
+  "name": "GoldenCheck",
+  "short_name": "GoldenCheck",
+  "description": "Daily safety check-in for family peace of mind.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f43f5e",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/goldencheck/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/goldencheck/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -60,5 +60,10 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
     }
+
+    match /biometric_credentials/{id} {
+      allow read: if true; // Needed to find UID before full login
+      allow create: if isAuthenticated();
+    }
   }
 }

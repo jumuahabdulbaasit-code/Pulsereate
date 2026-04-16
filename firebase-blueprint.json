@@ -7,6 +7,7 @@
       "properties": {
         "uid": { "type": "string" },
         "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
         "email": { "type": "string" },
         "checkInDeadline": { "type": "string", "description": "Time of day for check-in e.g. 10:00" }
       },
@@ -49,6 +50,10 @@
     "/users/{uid}/contacts/{contactId}": {
       "schema": "EmergencyContact",
       "description": "Family contacts"
+    },
+    "/biometric_credentials/{credentialId}": {
+      "schema": "object",
+      "description": "Mapping of biometric credentials to user IDs"
     }
   }
 }
